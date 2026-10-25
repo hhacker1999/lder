@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"lder/pkg/db"
 	"lder/pkg/tmdb"
 	"lder/pkg/tvdb"
 	"lder/router"
@@ -13,9 +14,10 @@ import (
 )
 
 type Config struct {
-	Port    uint   `json:"port"`
-	TmdbKey string `json:"tmdb_key"`
-	TvdbKey string `json:"tvdb_key"`
+	Port     uint      `json:"port"`
+	TmdbKey  string    `json:"tmdb_key"`
+	TvdbKey  string    `json:"tvdb_key"`
+	Database db.Config `json:"database"`
 }
 
 func main() {
@@ -45,6 +47,15 @@ func main() {
 	if !tvdb.ValidateKey() {
 		log.Fatalln("Invalid TVDB key")
 	}
+
+	database, err := db.NewDbAfterMigrations(
+		config.Database,
+		filepath.Join(cwd, "migrations"),
+	)
+	if err != nil {
+		log.Fatalln("Error initialising DB ", err)
+	}
+	defer database.Close()
 
 	httpRouter := router.New()
 	handler := httpRouter.SetupRoutes()
