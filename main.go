@@ -57,7 +57,7 @@ func main() {
 	}
 	defer database.Close()
 
-	httpRouter := router.New()
+	httpRouter := router.New(tmdb, &tvdb)
 	handler := httpRouter.SetupRoutes()
 	fmt.Println("Starting http server")
 	err = http.ListenAndServe(fmt.Sprintf(":%d", config.Port), handler)

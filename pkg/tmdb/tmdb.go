@@ -91,6 +91,7 @@ func (t Tmdb) MovieDetails(movieID int) (MovieDetails, error) {
 		return MovieDetails{}, err
 	}
 	t.setAPIKey(req)
+	t.setAppendToResponse(req, "credits")
 
 	var details MovieDetails
 	if err := t.doJSON(req, &details); err != nil {
@@ -99,9 +100,83 @@ func (t Tmdb) MovieDetails(movieID int) (MovieDetails, error) {
 	return details, nil
 }
 
+func (t Tmdb) SearchTV(query string, page int) (TVSearchResponse, error) {
+	if query == "" {
+		return TVSearchResponse{}, fmt.Errorf("search query cannot be empty")
+	}
+	if page < 1 {
+		page = 1
+	}
+
+	u, err := url.Parse(baseURL + "/search/tv")
+	if err != nil {
+		return TVSearchResponse{}, err
+	}
+	q := u.Query()
+	q.Set("query", query)
+	q.Set("page", fmt.Sprintf("%d", page))
+	q.Set("include_adult", "false")
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+	if err != nil {
+		return TVSearchResponse{}, err
+	}
+	t.setAPIKey(req)
+
+	var result TVSearchResponse
+	if err := t.doJSON(req, &result); err != nil {
+		return TVSearchResponse{}, err
+	}
+	return result, nil
+}
+
+func (t Tmdb) TVExternalIDs(tvID int) (TVExternalIDs, error) {
+	if tvID <= 0 {
+		return TVExternalIDs{}, fmt.Errorf("invalid tv id")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/tv/%d/external_ids", baseURL, tvID), nil)
+	if err != nil {
+		return TVExternalIDs{}, err
+	}
+	t.setAPIKey(req)
+
+	var ids TVExternalIDs
+	if err := t.doJSON(req, &ids); err != nil {
+		return TVExternalIDs{}, err
+	}
+	return ids, nil
+}
+
+func (t Tmdb) TVDetails(tvID int) (TVDetails, error) {
+	if tvID <= 0 {
+		return TVDetails{}, fmt.Errorf("invalid tv id")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/tv/%d", baseURL, tvID), nil)
+	if err != nil {
+		return TVDetails{}, err
+	}
+	t.setAPIKey(req)
+	t.setAppendToResponse(req, "credits")
+
+	var details TVDetails
+	if err := t.doJSON(req, &details); err != nil {
+		return TVDetails{}, err
+	}
+	return details, nil
+}
+
 func (t Tmdb) setAPIKey(req *http.Request) {
 	q := req.URL.Query()
 	q.Set("api_key", t.apiKey)
+	req.URL.RawQuery = q.Encode()
+}
+
+func (t Tmdb) setAppendToResponse(req *http.Request, value string) {
+	q := req.URL.Query()
+	q.Set("append_to_response", value)
 	req.URL.RawQuery = q.Encode()
 }
 
